@@ -21,6 +21,19 @@ def get_profile(user):
     return profile
 
 
+PROFILE_REQUIRED_FIELDS = (
+    ("field", "Field"), ("specialization", "Specialization"), ("skills", "Skills"),
+    ("experience_level", "Experience level"), ("work_format", "Work format"),
+    ("location", "Location"), ("experience", "Experience"), ("education", "Education"),
+    ("languages", "Languages"),
+)
+
+
+def profile_completion(profile):
+    missing = [label for field, label in PROFILE_REQUIRED_FIELDS if not getattr(profile, field)]
+    return round((len(PROFILE_REQUIRED_FIELDS) - len(missing)) * 100 / len(PROFILE_REQUIRED_FIELDS)), missing
+
+
 def home(request):
     real_vacancies = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
     recent = real_vacancies[:6]
@@ -35,7 +48,8 @@ def dashboard(request):
     profile_obj = get_profile(request.user)
     real_vacancies = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
     recommendations = recommended_vacancies(real_vacancies[:100], profile_obj)[:6]
-    return render(request, "jobs/dashboard.html", {"profile": profile_obj, "recommendations": recommendations, "saved_count": SavedJob.objects.filter(user=request.user).count(), "viewed": Vacancy.objects.filter(views__user=request.user).order_by("-views__viewed_at")[:4], "market": market_summary(), "skills": top_skills()[:5]})
+    completion, missing_fields = profile_completion(profile_obj)
+    return render(request, "jobs/dashboard.html", {"profile": profile_obj, "completion": completion, "missing_fields": missing_fields, "required_fields": [label for _, label in PROFILE_REQUIRED_FIELDS], "recommendations": recommendations, "saved_count": SavedJob.objects.filter(user=request.user).count(), "viewed": Vacancy.objects.filter(views__user=request.user).order_by("-views__viewed_at")[:4], "market": market_summary(), "skills": top_skills()[:5]})
 
 
 def register(request):
@@ -154,7 +168,8 @@ def profile(request):
         photo_form.save()
         messages.success(request, gettext("Profile photo updated."))
         return redirect("profile")
-    return render(request, "jobs/profile.html", {"form": form, "photo_form": photo_form, "profile": profile_obj})
+    completion, missing_fields = profile_completion(profile_obj)
+    return render(request, "jobs/profile.html", {"form": form, "photo_form": photo_form, "profile": profile_obj, "completion": completion, "missing_fields": missing_fields})
 
 
 @login_required

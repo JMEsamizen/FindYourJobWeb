@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.core.management import call_command
+from .views import profile_completion
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
@@ -93,6 +94,37 @@ class MatchingTests(TestCase):
         self.client.force_login(self.user)
         self.assertRedirects(self.client.post(reverse("clear_history")), reverse("history"))
         self.assertEqual(self.user.viewed_jobs.count(), 0)
+
+    def test_profile_completion_reaches_100_with_all_required_fields(self):
+        self.profile.field = "programming"
+        self.profile.specialization = "Backend"
+        self.profile.skills = ["python"]
+        self.profile.experience_level = "junior"
+        self.profile.work_format = "remote"
+        self.profile.location = "tashkent"
+        self.profile.experience = "One year"
+        self.profile.education = "Computer science"
+        self.profile.languages = ["en"]
+        self.profile.save()
+        completion, missing = profile_completion(self.profile)
+        self.assertEqual(completion, 100)
+        self.assertEqual(missing, [])
+        self.client.force_login(self.user)
+        self.assertContains(self.client.get(reverse("dashboard")), "100%")
+
+    def test_cv_templates_have_distinct_previews_and_exports(self):
+        self.client.force_login(self.user)
+        previews = []
+        pdfs = []
+        for template in ("modern", "professional", "minimal", "creative"):
+            response = self.client.post(reverse("cv_builder"), {"template": template, "vacancy": self.good.pk})
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, f"cv-{template}")
+            previews.append(response.content)
+            pdf_response = self.client.get(reverse("cv_pdf"))
+            pdfs.append(b"".join(pdf_response.streaming_content))
+        self.assertEqual(len(set(previews)), 4)
+        self.assertEqual(len(set(pdfs)), 4)
 
     def test_original_source_link_is_rendered(self):
         response = self.client.get(reverse("job_detail", args=[self.good.pk]))
