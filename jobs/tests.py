@@ -2,7 +2,11 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.core.management import call_command
 from django.urls import reverse
+from unittest.mock import patch
+import httpx
 from .models import Profile, Vacancy, VacancyAnalysis
+from .importer import import_item, import_telegram_channels
+from .sources.telegram import VacancySourceItem
 from .services import fallback_analysis, matches_profile, recommended_vacancies
 
 
@@ -10,8 +14,8 @@ class MatchingTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username="alex", password="pass12345")
         self.profile = Profile.objects.create(user=self.user, field="programming", skills=["python", "django"], work_format="remote")
-        self.good = Vacancy.objects.create(url="https://example.com/good", title="Python backend remote", text="Backend Python Django remote role", skills=["python", "django"], category="programming", work_format="remote")
-        self.other = Vacancy.objects.create(url="https://example.com/other", title="Graphic designer", text="Figma and branding in office", skills=["figma"], category="design", work_format="on_site")
+        self.good = Vacancy.objects.create(url="https://t.me/kasbim_uz/101", source_url="https://t.me/kasbim_uz/101", external_id="kasbim_uz/101", source="Telegram", title="Python backend remote", text="Backend Python Django remote role", skills=["python", "django"], category="programming", work_format="remote")
+        self.other = Vacancy.objects.create(url="https://t.me/kasbim_uz/102", source_url="https://t.me/kasbim_uz/102", external_id="kasbim_uz/102", source="Telegram", title="Graphic designer", text="Figma and branding in office", skills=["figma"], category="design", work_format="on_site")
 
     def test_matching_scores_and_recommendations(self):
         self.assertGreater(matches_profile(self.good, self.profile)["score"], matches_profile(self.other, self.profile)["score"])
@@ -28,6 +32,35 @@ class MatchingTests(TestCase):
         self.assertContains(response, self.good.title)
         self.assertNotContains(response, self.other.title)
 
+    def test_original_source_link_is_rendered(self):
+        response = self.client.get(reverse("job_detail", args=[self.good.pk]))
+        self.assertContains(response, 'href="https://t.me/kasbim_uz/101"')
+        self.assertContains(response, "View original vacancy")
+
+    def test_vacancies_without_source_are_hidden_from_production(self):
+        unavailable = Vacancy.objects.create(title="No source", text="No source", source="", category="other")
+        response = self.client.get(reverse("jobs"))
+        self.assertNotContains(response, unavailable.title)
+        self.assertEqual(self.client.get(reverse("job_detail", args=[unavailable.pk])).status_code, 404)
+
+    def test_import_creates_and_updates_by_source_external_id(self):
+        item = VacancySourceItem("channel/7", "Original title", "Original text", "2026-09-16", "Telegram", "https://t.me/channel/7", "channel")
+        vacancy, created = import_item(item)
+        self.assertTrue(created)
+        self.assertEqual(vacancy.source_url, item.source_url)
+        updated_item = VacancySourceItem(item.external_id, "Updated title", "Updated text", item.date, item.source, item.source_url, item.channel)
+        updated, created = import_item(updated_item)
+        self.assertFalse(created)
+        self.assertEqual(updated.pk, vacancy.pk)
+        self.assertEqual(Vacancy.objects.filter(source="Telegram", external_id="channel/7").count(), 1)
+        self.assertEqual(updated.title, "Updated title")
+
+    @patch("jobs.importer.fetch_channel", side_effect=httpx.ConnectError("offline"))
+    def test_one_source_error_does_not_abort_import(self, fetch_channel):
+        created, updated, errors = import_telegram_channels(["unavailable-channel"])
+        self.assertEqual((created, updated), (0, 0))
+        self.assertEqual(len(errors), 1)
+
     def test_language_switch_sets_django_cookie(self):
         response = self.client.post(reverse("language_switch"), {"language": "ru", "next": reverse("home")})
         self.assertEqual(response.cookies["django_language"].value, "ru")
@@ -38,6 +71,7 @@ class MatchingTests(TestCase):
         call_command("seed_jobs")
         self.assertEqual(first_count, 120)
         self.assertEqual(Vacancy.objects.filter(channel="seed-data").count(), first_count)
+        self.assertEqual(Vacancy.objects.filter(channel="seed-data", is_demo=True, source_url__isnull=True).count(), 120)
 
     def test_authenticated_product_flows(self):
         self.client.force_login(self.user)

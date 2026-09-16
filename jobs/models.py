@@ -36,11 +36,15 @@ class Vacancy(models.Model):
     EXPERIENCE_CHOICES = [(value, value.replace("_", " ").title()) for value in ("no_experience", "junior", "middle", "senior", "lead")]
     EMPLOYMENT_CHOICES = [(value, value.replace("_", " ").title()) for value in ("full_time", "part_time", "contract", "internship", "freelance")]
     FORMAT_CHOICES = [(value, value.replace("_", " ").title()) for value in ("remote", "hybrid", "on_site")]
-    url = models.URLField(unique=True)
+    url = models.URLField(unique=True, null=True, blank=True)
+    source_url = models.URLField(unique=True, null=True, blank=True)
+    external_id = models.CharField(max_length=160, blank=True, null=True)
     title = models.CharField(max_length=240)
     text = models.TextField()
     date = models.CharField(max_length=80, blank=True)
     channel = models.CharField(max_length=120, blank=True)
+    source = models.CharField(max_length=40, blank=True)
+    is_demo = models.BooleanField(default=False)
     company = models.CharField(max_length=160, default="FindYourJob partner")
     category = models.CharField(max_length=40, choices=CATEGORY_CHOICES, default="other")
     skills = models.JSONField(default=list, blank=True)
@@ -54,9 +58,13 @@ class Vacancy(models.Model):
     languages = models.JSONField(default=list, blank=True)
     published_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["source", "external_id"], condition=models.Q(external_id__isnull=False), name="unique_vacancy_source_external_id"),
+        ]
 
     def __str__(self):
         return self.title

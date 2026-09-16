@@ -22,17 +22,19 @@ def get_profile(user):
 
 
 def home(request):
-    recent = Vacancy.objects.all()[:6]
+    real_vacancies = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
+    recent = real_vacancies[:6]
     recommendations = []
     if request.user.is_authenticated:
-        recommendations = recommended_vacancies(Vacancy.objects.all()[:100], get_profile(request.user))[:4]
+        recommendations = recommended_vacancies(real_vacancies[:100], get_profile(request.user))[:4]
     return render(request, "jobs/home.html", {"recent": recent, "recommendations": recommendations})
 
 
 @login_required
 def dashboard(request):
     profile_obj = get_profile(request.user)
-    recommendations = recommended_vacancies(Vacancy.objects.all()[:100], profile_obj)[:6]
+    real_vacancies = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
+    recommendations = recommended_vacancies(real_vacancies[:100], profile_obj)[:6]
     return render(request, "jobs/dashboard.html", {"profile": profile_obj, "recommendations": recommendations, "saved_count": SavedJob.objects.filter(user=request.user).count(), "viewed": Vacancy.objects.filter(views__user=request.user).order_by("-views__viewed_at")[:4], "market": market_summary(), "skills": top_skills()[:5]})
 
 
@@ -50,7 +52,7 @@ def register(request):
 
 def jobs(request):
     form = SearchForm(request.GET or None)
-    queryset = Vacancy.objects.all()
+    queryset = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
     if form.is_valid():
         query = form.cleaned_data.get("query")
         if query:
@@ -77,7 +79,7 @@ def jobs(request):
 
 
 def job_detail(request, pk):
-    vacancy = get_object_or_404(Vacancy, pk=pk)
+    vacancy = get_object_or_404(Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url=""), pk=pk)
     saved = False
     analysis = None
     match_result = None

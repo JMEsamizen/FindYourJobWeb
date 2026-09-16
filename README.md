@@ -64,13 +64,15 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-7. Import public Telegram vacancy posts using the same source shape as the bot:
+7. Import current public Telegram vacancy posts. Each imported record keeps the original Telegram post URL, source name, and Telegram `data-post` identifier for deduplication:
 
 ```powershell
-python manage.py fetch_vacancies
+python manage.py import_jobs
 # or choose channels explicitly
-python manage.py fetch_vacancies kasbim_uz job_react ayti_jobs
+python manage.py import_jobs kasbim_uz job_react ayti_jobs smmprtashkent
 ```
+
+`fetch_vacancies` remains an alias for the same importer. A source failure is logged and reported while other configured sources continue. The site currently has no HH.uz API/feed integration; do not add HH links by search text or generated vacancy IDs. Add HH only after an authorized API/feed integration is available.
 
 8. For an initial local dataset, create 120 varied, idempotent records:
 
@@ -86,7 +88,7 @@ python manage.py runserver
 
 Open `http://127.0.0.1:8000/`.
 
-The Telegram fetch command remains the production ingestion path. `seed_jobs` is only for initial development/demo data and can be run repeatedly without duplicate records.
+The Telegram importer is the production ingestion path. `seed_jobs` creates only `is_demo=True` records without source URLs and those records are excluded from the production catalog.
 
 ## Project structure
 
@@ -115,6 +117,6 @@ python manage.py collectstatic --noinput
 gunicorn config.wsgi:application --bind 127.0.0.1:8000
 ```
 
-Put Nginx in front of Gunicorn, terminate TLS with the VPS provider or Certbot, and schedule `python manage.py fetch_vacancies` with cron or a systemd timer. Keep `.env` outside version control and back up PostgreSQL regularly.
+Put Nginx in front of Gunicorn, terminate TLS with the VPS provider or Certbot, and schedule `python manage.py import_jobs` with cron or a systemd timer (for example every 15 minutes). Keep `.env` outside version control and back up PostgreSQL regularly.
 
 For the bot, create a separate systemd service using the bot project's virtual environment and environment file. Run database migrations and `collectstatic` during each deployment, and verify the site with `python manage.py check --deploy` before exposing it publicly.

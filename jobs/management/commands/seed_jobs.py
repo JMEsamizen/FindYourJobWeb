@@ -51,9 +51,9 @@ class Command(BaseCommand):
             location = LOCATIONS[index % len(LOCATIONS)]
             company = COMPANIES[index % len(COMPANIES)]
             title = f"{role} - {level.replace('_', ' ').title()} #{index + 1}"
-            url = f"https://seed.findyourjob.local/vacancy/{index + 1}"
             description = f"{company} is looking for a {role} to join a practical team. You will work on customer-facing projects, collaborate with colleagues, and improve reliable products. Required skills: {', '.join(skills)}."
-            _, was_created = Vacancy.objects.update_or_create(url=url, defaults={
+            _, was_created = Vacancy.objects.update_or_create(channel="seed-data", title=title, defaults={
+                "url": None, "source_url": None, "source": "Demo", "is_demo": True,
                 "title": title, "text": description, "date": (now - timedelta(days=index % 30)).date().isoformat(),
                 "channel": "seed-data", "company": company, "category": category, "skills": skills,
                 "experience_level": level, "employment_type": employment, "work_format": work_format,

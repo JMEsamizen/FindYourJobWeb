@@ -1,0 +1,1 @@
+"""Adapters for permitted external vacancy sources."""
