@@ -48,6 +48,11 @@ class MatchingTests(TestCase):
         for params in ({"sort": "oldest"}, {"sort": "not-a-sort"}, {"salary_min": "invalid"}, {"page": "invalid"}):
             self.assertEqual(self.client.get(reverse("jobs"), params).status_code, 200)
 
+    def test_relevance_sort_prioritizes_title_match(self):
+        response = self.client.get(reverse("jobs"), {"query": "Python", "sort": "relevance"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(list(response.context["page"])[0], self.good)
+
     def test_original_source_link_is_rendered(self):
         response = self.client.get(reverse("job_detail", args=[self.good.pk]))
         self.assertContains(response, 'href="https://t.me/kasbim_uz/101"')

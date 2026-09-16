@@ -5,7 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
-from django.db.models import Q, F
+from django.db.models import Case, F, IntegerField, Q, Value, When
 from django.http import FileResponse, HttpResponse
 from django.conf import settings
 from django.utils.translation import activate, gettext
@@ -80,7 +80,15 @@ def jobs(request):
         elif form.cleaned_data.get("sort") == "salary":
             queryset = queryset.order_by(F("salary_max").desc(nulls_last=True))
         elif form.cleaned_data.get("sort") == "relevance" and query:
-            queryset = queryset.order_by("-published_at", "-created_at")
+            queryset = queryset.annotate(relevance_score=Case(
+                When(title__icontains=query, then=Value(5)),
+                When(company__icontains=query, then=Value(4)),
+                When(skills__icontains=query, then=Value(3)),
+                When(location__icontains=query, then=Value(2)),
+                When(text__icontains=query, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )).order_by("-relevance_score", F("published_at").desc(nulls_last=True), "-created_at")
         else:
             queryset = queryset.order_by(F("published_at").desc(nulls_last=True), "-created_at")
     paginator = Paginator(queryset, 12)
