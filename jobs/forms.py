@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
@@ -29,6 +30,32 @@ class ProfileForm(forms.ModelForm):
         profile = super().save(commit=False)
         profile.skills = [item.strip().lower() for item in self.cleaned_data["skills_text"].split(",") if item.strip()]
         profile.languages = [item.strip().lower() for item in self.cleaned_data["languages_text"].split(",") if item.strip()]
+        if commit:
+            profile.save()
+        return profile
+
+
+class ProfilePhotoForm(forms.ModelForm):
+    remove_photo = forms.BooleanField(required=False, label=_("Remove photo"))
+
+    class Meta:
+        model = Profile
+        fields = ("photo",)
+        widgets = {"photo": forms.ClearableFileInput(attrs={"accept": "image/*"})}
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get("photo")
+        if photo and photo.size > 5 * 1024 * 1024:
+            raise ValidationError(_("Image must be 5 MB or smaller."))
+        if photo and hasattr(photo, "content_type") and photo.content_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise ValidationError(_("Upload a JPG, PNG, or WebP image."))
+        return photo
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if self.cleaned_data.get("remove_photo"):
+            profile.photo.delete(save=False)
+            profile.photo = None
         if commit:
             profile.save()
         return profile

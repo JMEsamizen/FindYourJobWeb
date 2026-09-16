@@ -2,6 +2,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.core.management import call_command
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
+from io import BytesIO
 from unittest.mock import patch
 import httpx
 from .models import Profile, Vacancy, VacancyAnalysis
@@ -52,6 +55,44 @@ class MatchingTests(TestCase):
         response = self.client.get(reverse("jobs"), {"query": "Python", "sort": "relevance"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(list(response.context["page"])[0], self.good)
+
+    def _image_upload(self, name="avatar.png", color=(36, 37, 130)):
+        output = BytesIO()
+        Image.new("RGB", (32, 32), color).save(output, format="PNG")
+        return SimpleUploadedFile(name, output.getvalue(), content_type="image/png")
+
+    def test_profile_photo_upload_replace_remove_and_invalid_rejected(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("profile"), {"photo_action": "1", "photo": self._image_upload()})
+        self.assertRedirects(response, reverse("profile"))
+        self.profile.refresh_from_db()
+        first_photo = self.profile.photo.name
+        self.assertTrue(first_photo.startswith("profile_photos/"))
+        self.client.post(reverse("profile"), {"photo_action": "1", "photo": self._image_upload("second.png", (246, 76, 114))})
+        self.profile.refresh_from_db()
+        self.assertNotEqual(self.profile.photo.name, first_photo)
+        invalid = self.client.post(reverse("profile"), {"photo_action": "1", "photo": SimpleUploadedFile("avatar.txt", b"not image", content_type="text/plain")})
+        self.assertEqual(invalid.status_code, 200)
+        self.client.post(reverse("profile"), {"photo_action": "1", "remove_photo": "on"})
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.photo)
+
+    def test_history_is_user_scoped_deduplicated_ordered_and_clearable(self):
+        second = Vacancy.objects.create(url="https://t.me/kasbim_uz/103", source_url="https://t.me/kasbim_uz/103", external_id="kasbim_uz/103", source="Telegram", title="Second job", text="Second", category="programming")
+        self.client.force_login(self.user)
+        self.client.get(reverse("job_detail", args=[self.good.pk]))
+        self.client.get(reverse("job_detail", args=[second.pk]))
+        self.client.get(reverse("job_detail", args=[self.good.pk]))
+        self.assertEqual(self.user.viewed_jobs.count(), 2)
+        history_response = self.client.get(reverse("history"))
+        self.assertEqual(history_response.status_code, 200)
+        self.assertEqual(list(history_response.context["page"])[0], self.good)
+        other_user = User.objects.create_user(username="other", password="pass12345")
+        self.client.force_login(other_user)
+        self.assertNotContains(self.client.get(reverse("history")), self.good.title)
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.post(reverse("clear_history")), reverse("history"))
+        self.assertEqual(self.user.viewed_jobs.count(), 0)
 
     def test_original_source_link_is_rendered(self):
         response = self.client.get(reverse("job_detail", args=[self.good.pk]))

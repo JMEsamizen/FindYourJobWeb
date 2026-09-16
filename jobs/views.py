@@ -10,7 +10,7 @@ from django.http import FileResponse, HttpResponse
 from django.conf import settings
 from django.utils.translation import activate, gettext
 from django.shortcuts import get_object_or_404, redirect, render
-from .forms import CVForm, ProfileForm, RegisterForm, SearchForm, SettingsForm
+from .forms import CVForm, ProfileForm, ProfilePhotoForm, RegisterForm, SearchForm, SettingsForm
 from .models import Profile, SavedJob, Vacancy, VacancyAnalysis, ViewedJob
 from .services import analyze_vacancy, generate_cv, matches_profile, recommended_vacancies
 from .market import market_summary, top_skills
@@ -145,11 +145,16 @@ def analyze(request, pk):
 def profile(request):
     profile_obj = get_profile(request.user)
     form = ProfileForm(request.POST or None, instance=profile_obj)
+    photo_form = ProfilePhotoForm(request.POST or None, request.FILES or None, instance=profile_obj)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, gettext("Profile updated."))
         return redirect("profile")
-    return render(request, "jobs/profile.html", {"form": form, "profile": profile_obj})
+    if request.method == "POST" and "photo_action" in request.POST and photo_form.is_valid():
+        photo_form.save()
+        messages.success(request, gettext("Profile photo updated."))
+        return redirect("profile")
+    return render(request, "jobs/profile.html", {"form": form, "photo_form": photo_form, "profile": profile_obj})
 
 
 @login_required
@@ -171,7 +176,14 @@ def saved_jobs(request):
 @login_required
 def history(request):
     page = Paginator(Vacancy.objects.filter(views__user=request.user).order_by("-views__viewed_at"), 12).get_page(request.GET.get("page"))
-    return render(request, "jobs/list.html", {"page": page, "title": gettext("Viewed history")})
+    return render(request, "jobs/history.html", {"page": page})
+
+
+@login_required
+def clear_history(request):
+    if request.method == "POST":
+        ViewedJob.objects.filter(user=request.user).delete()
+    return redirect("history")
 
 
 @login_required
@@ -188,7 +200,12 @@ def settings_page(request):
 def cv_builder(request):
     profile_obj = get_profile(request.user)
     form = CVForm(request.POST or None)
+    photo_form = ProfilePhotoForm(request.POST or None, request.FILES or None, instance=profile_obj)
     if request.method == "POST":
+        if "photo_action" in request.POST and photo_form.is_valid():
+            photo_form.save()
+            messages.success(request, gettext("Profile photo updated."))
+            return redirect("cv_builder")
         if form.is_valid():
             if profile_obj.cv_generations == 0:
                 profile_obj.cv_generations = 1
@@ -198,8 +215,8 @@ def cv_builder(request):
             cv_content = generate_cv(profile_obj, form.cleaned_data["vacancy"])
             profile_obj.cv_content = cv_content
             profile_obj.save(update_fields=["cv_generations", "cv_template", "cv_content", "updated_at"])
-            return render(request, "jobs/cv.html", {"profile": profile_obj, "form": form, "cv_content": cv_content, "generated": True})
-    return render(request, "jobs/cv.html", {"profile": profile_obj, "form": form, "generated": False})
+            return render(request, "jobs/cv.html", {"profile": profile_obj, "form": form, "photo_form": photo_form, "cv_content": cv_content, "generated": True})
+    return render(request, "jobs/cv.html", {"profile": profile_obj, "form": form, "photo_form": photo_form, "generated": False})
 
 
 @login_required
@@ -208,11 +225,17 @@ def cv_pdf(request):
     try:
         from reportlab.pdfgen import canvas
         from reportlab.lib import colors
+        from reportlab.lib.utils import ImageReader
         buffer = io.BytesIO()
         pdf = canvas.Canvas(buffer)
         pdf.setTitle(f"CV - {request.user.get_full_name() or request.user.username}")
         content = profile_obj.cv_content or generate_cv(profile_obj)
         name = request.user.get_full_name() or request.user.username
+        if profile_obj.photo:
+            try:
+                pdf.drawImage(ImageReader(profile_obj.photo.path), 440, 770, width=90, height=60, preserveAspectRatio=True, mask="auto")
+            except (OSError, ValueError):
+                pass
         sections = (("SUMMARY", content.get("summary", "")), ("SKILLS", ", ".join(profile_obj.skills)), ("EXPERIENCE", content.get("experience", profile_obj.experience)), ("EDUCATION", profile_obj.education), ("PROJECTS", content.get("projects", profile_obj.projects)), ("LANGUAGES", ", ".join(profile_obj.languages)), ("CERTIFICATIONS", profile_obj.certifications))
         template = profile_obj.cv_template
         if template == "modern":

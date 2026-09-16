@@ -25,6 +25,7 @@ class Profile(models.Model):
     cv_template = models.CharField(max_length=30, default="modern")
     cv_content = models.JSONField(default=dict, blank=True)
     cv_generations = models.PositiveIntegerField(default=0)
+    photo = models.ImageField(upload_to="profile_photos/", blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

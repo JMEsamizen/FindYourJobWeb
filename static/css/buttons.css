@@ -82,3 +82,59 @@ button.btn:focus-visible,
 .cv-preview, .cv-template-card { background:var(--surface); border-color:var(--line); }
 .cv-template-card:hover { border-color:var(--primary-strong); box-shadow:0 10px 22px rgba(36,37,130,.12); }
 .cv-template-card:has(input:checked) { border-color:var(--primary); box-shadow:0 0 0 4px rgba(246,76,114,.18); }
+
+.account-page { background: radial-gradient(circle at 90% 5%, #eeeafa 0, transparent 28rem); min-height: calc(100vh - 70px); }
+.account-shell { max-width: 1080px; }
+.account-heading { display:flex; justify-content:space-between; align-items:end; gap:1rem; margin-bottom:1.8rem; }
+.account-heading h1 { margin:.25rem 0 .45rem; }
+.account-heading p:not(.eyebrow) { color:var(--muted); margin:0; }
+.profile-hero { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:1.4rem; padding:1.5rem; margin-bottom:1rem; background:linear-gradient(120deg,#fff 0%,#f5f3ff 100%); border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 30px rgba(36,37,130,.08); }
+.profile-avatar { width:92px; height:92px; display:grid; place-items:center; overflow:hidden; border-radius:24px; background:linear-gradient(135deg,var(--primary),var(--purple)); color:#fff; font:700 2rem system-ui,sans-serif; }
+.profile-avatar img { width:100%; height:100%; object-fit:cover; }
+.profile-identity h2 { margin:.15rem 0; }
+.profile-identity p:not(.eyebrow) { color:var(--muted); margin:.2rem 0; font-family:system-ui,sans-serif; }
+.profile-photo-actions form { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem; max-width:230px; }
+.profile-photo-actions input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
+.remove-photo { width:100%; color:var(--muted); font: .78rem system-ui,sans-serif; text-align:right; }
+.account-card { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:1.5rem; margin-top:1rem; box-shadow:0 8px 24px rgba(36,37,130,.05); }
+.card-heading { display:flex; justify-content:space-between; margin-bottom:1.2rem; }
+.card-heading h2 { margin:.2rem 0 0; font-size:1.35rem; }
+.form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+.form-field, .auth-field { display:grid; gap:.4rem; }
+.form-field-wide { grid-column:1 / -1; }
+.form-field label, .auth-field label, .form-label { color:var(--purple); font:600 .8rem system-ui,sans-serif; }
+.form-field input, .form-field select, .form-field textarea, .auth-field input { width:100%; }
+.form-field textarea { min-height:110px; }
+.form-error { color:#b4234d; font: .78rem system-ui,sans-serif; }
+.account-actions { display:flex; justify-content:flex-end; margin-top:1rem; }
+.history-list { display:grid; gap:.75rem; }
+.history-item { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1.2rem 1.35rem; background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:9px; }
+.history-item h2 { margin:.35rem 0; font-size:1.05rem; }
+.history-item p, .history-meta time { color:var(--muted); font: .82rem system-ui,sans-serif; margin:0; }
+.source-label { color:var(--primary); font:700 .72rem system-ui,sans-serif; text-transform:uppercase; letter-spacing:.08em; }
+.history-meta { display:flex; flex-direction:column; align-items:flex-end; gap:.65rem; flex-shrink:0; }
+.empty-icon { color:var(--accent); font-size:2rem; }
+.auth-page { min-height:calc(100vh - 70px); display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,480px); align-items:center; gap:4rem; max-width:1100px; margin:auto; padding:4rem 1.5rem; background:radial-gradient(circle at 5% 20%,#eeeafa 0,transparent 24rem); }
+.auth-intro { padding:2rem 0; }
+.auth-intro h1 { max-width:520px; margin:.5rem 0 1rem; font-size:clamp(2.5rem,6vw,5rem); line-height:.98; color:var(--primary); }
+.auth-intro p:not(.eyebrow) { max-width:420px; color:var(--muted); font:1.05rem/1.6 system-ui,sans-serif; }
+.auth-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:2rem; box-shadow:0 20px 50px rgba(36,37,130,.13); }
+.auth-card h2 { margin:.25rem 0 1.4rem; }
+.auth-form { display:grid; gap:1rem; }
+.auth-field input { min-height:48px; border-radius:7px; border:1px solid #c7c6dc; padding:.7rem .85rem; }
+.auth-field input:focus { border-color:var(--primary-strong); outline:0; box-shadow:0 0 0 3px rgba(47,47,162,.14); }
+.auth-button { width:100%; min-height:48px; }
+.auth-footer { color:var(--muted); margin:1.4rem 0 0; text-align:center; font: .9rem system-ui,sans-serif; }
+.auth-footer a, .text-link { color:var(--primary); font-weight:700; }
+.auth-error { background:#fff0f4; border:1px solid #f4b4c4; padding:.7rem; border-radius:7px; margin-bottom:1rem; }
+.cv-builder-shell { max-width:1120px; }
+.cv-builder-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(320px,.85fr); gap:1.25rem; align-items:start; }
+.cv-photo-row { display:flex; align-items:center; gap:1rem; }
+.profile-avatar.small { width:68px; height:68px; border-radius:18px; font-size:1.4rem; flex-shrink:0; }
+.photo-form { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+.photo-form input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
+.cv-preview-panel { position:sticky; top:90px; }
+.cv-preview-identity { display:flex; align-items:center; gap:1rem; }
+.cv-preview-photo { width:72px; height:72px; object-fit:cover; border-radius:16px; border:3px solid var(--accent); }
+@media (max-width:767px) { .cv-builder-grid { grid-template-columns:1fr; } .cv-preview-panel { position:static; } }
+@media (max-width:767px) { .account-heading, .profile-hero, .history-item { align-items:flex-start; flex-direction:column; } .profile-hero { display:flex; } .profile-photo-actions form { justify-content:flex-start; max-width:none; } .remove-photo { text-align:left; } .form-grid { grid-template-columns:1fr; } .form-field-wide { grid-column:auto; } .auth-page { grid-template-columns:1fr; gap:1rem; padding:2.5rem 1rem; } .auth-intro { padding:0; } .auth-intro h1 { font-size:2.8rem; } .auth-card { padding:1.35rem; } .history-meta { align-items:flex-start; } }
