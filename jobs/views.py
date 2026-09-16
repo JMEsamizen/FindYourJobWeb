@@ -51,8 +51,15 @@ def register(request):
 
 
 def jobs(request):
-    form = SearchForm(request.GET or None)
     queryset = Vacancy.objects.filter(is_demo=False).exclude(source_url__isnull=True).exclude(source_url="")
+    params = request.GET.copy()
+    aliases = {"q": "query", "role": "category", "level": "experience_level", "format": "work_format"}
+    for alias, field in aliases.items():
+        if params.get(alias) and not params.get(field):
+            params[field] = params[alias]
+    locations = queryset.order_by().values_list("location", flat=True).distinct()
+    sources = queryset.order_by().values_list("source", flat=True).distinct()
+    form = SearchForm(params or None, locations=locations, sources=sources)
     if form.is_valid():
         query = form.cleaned_data.get("query")
         if query:
@@ -64,18 +71,34 @@ def jobs(request):
             queryset = queryset.filter(location__icontains=form.cleaned_data["location"])
         if form.cleaned_data.get("language"):
             queryset = queryset.filter(languages__contains=[form.cleaned_data["language"]])
+        if form.cleaned_data.get("source"):
+            queryset = queryset.filter(source=form.cleaned_data["source"])
         if form.cleaned_data.get("salary_min"):
             queryset = queryset.filter(salary_max__gte=form.cleaned_data["salary_min"])
-        if form.cleaned_data.get("sort") == "salary":
+        if form.cleaned_data.get("sort") == "oldest":
+            queryset = queryset.order_by(F("published_at").asc(nulls_last=True), "created_at")
+        elif form.cleaned_data.get("sort") == "salary":
             queryset = queryset.order_by(F("salary_max").desc(nulls_last=True))
         elif form.cleaned_data.get("sort") == "relevance" and query:
             queryset = queryset.order_by("-published_at", "-created_at")
+        else:
+            queryset = queryset.order_by(F("published_at").desc(nulls_last=True), "-created_at")
     paginator = Paginator(queryset, 12)
-    page = paginator.get_page(request.GET.get("page"))
+    page = paginator.get_page(params.get("page"))
     profile_obj = get_profile(request.user) if request.user.is_authenticated else None
     for vacancy in page.object_list:
         vacancy.match_result = matches_profile(vacancy, profile_obj) if profile_obj else None
-    return render(request, "jobs/jobs.html", {"form": form, "page": page})
+    query_without_page = params.copy()
+    query_without_page.pop("page", None)
+    active_filters = []
+    labels = {"query": gettext("Search"), "category": gettext("Role"), "experience_level": gettext("Level"), "work_format": gettext("Work format"), "location": gettext("Location"), "language": gettext("Language"), "source": gettext("Source"), "employment_type": gettext("Employment"), "salary_min": gettext("Salary")}
+    for field, label in labels.items():
+        value = form.cleaned_data.get(field) if form.is_valid() else params.get(field)
+        if value not in (None, ""):
+            without = query_without_page.copy()
+            without.pop(field, None)
+            active_filters.append({"label": label, "value": value, "url": f"?{without.urlencode()}"})
+    return render(request, "jobs/jobs.html", {"form": form, "page": page, "result_count": paginator.count, "active_filters": active_filters, "querystring": query_without_page.urlencode()})
 
 
 def job_detail(request, pk):

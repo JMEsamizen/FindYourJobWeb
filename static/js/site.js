@@ -14,4 +14,18 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   });
+  const filterPanel = document.querySelector('[data-filter-panel]');
+  const filterToggle = document.querySelector('[data-filter-toggle]');
+  const filterClose = document.querySelector('[data-filter-close]');
+  const setFiltersOpen = (open) => {
+    if (!filterPanel || !filterToggle) return;
+    filterPanel.classList.toggle('is-open', open);
+    filterPanel.setAttribute('aria-hidden', String(!open));
+    filterToggle.setAttribute('aria-expanded', String(open));
+    filterToggle.classList.toggle('is-active', open);
+  };
+  filterToggle?.addEventListener('click', () => setFiltersOpen(!filterPanel.classList.contains('is-open')));
+  filterClose?.addEventListener('click', () => setFiltersOpen(false));
+  filterPanel?.addEventListener('click', (event) => { if (event.target === filterPanel) setFiltersOpen(false); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setFiltersOpen(false); });
 });

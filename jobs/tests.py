@@ -32,6 +32,22 @@ class MatchingTests(TestCase):
         self.assertContains(response, self.good.title)
         self.assertNotContains(response, self.other.title)
 
+    def test_jobs_default_listing_shows_real_vacancies(self):
+        response = self.client.get(reverse("jobs"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.good.title)
+        self.assertContains(response, "jobs found")
+
+    def test_jobs_query_alias_and_combined_filters(self):
+        response = self.client.get(reverse("jobs"), {"q": "Python", "role": "programming", "level": "junior", "format": "remote"})
+        self.assertContains(response, self.good.title)
+        self.assertNotContains(response, self.other.title)
+        self.assertContains(response, "q=Python")
+
+    def test_jobs_sort_and_invalid_parameters_are_safe(self):
+        for params in ({"sort": "oldest"}, {"sort": "not-a-sort"}, {"salary_min": "invalid"}, {"page": "invalid"}):
+            self.assertEqual(self.client.get(reverse("jobs"), params).status_code, 200)
+
     def test_original_source_link_is_rendered(self):
         response = self.client.get(reverse("job_detail", args=[self.good.pk]))
         self.assertContains(response, 'href="https://t.me/kasbim_uz/101"')

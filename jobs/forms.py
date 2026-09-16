@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils.translation import gettext_lazy as _
 from .models import Profile, Vacancy
 
 
@@ -34,15 +35,21 @@ class ProfileForm(forms.ModelForm):
 
 
 class SearchForm(forms.Form):
-    query = forms.CharField(required=False, label="Search")
-    category = forms.ChoiceField(required=False, choices=[("", "Any category")] + Vacancy.CATEGORY_CHOICES)
-    experience_level = forms.ChoiceField(required=False, choices=[("", "Any experience")] + Vacancy.EXPERIENCE_CHOICES)
-    employment_type = forms.ChoiceField(required=False, choices=[("", "Any employment")] + Vacancy.EMPLOYMENT_CHOICES)
-    work_format = forms.ChoiceField(required=False, choices=[("", "Any format")] + Vacancy.FORMAT_CHOICES)
-    location = forms.CharField(required=False)
-    language = forms.ChoiceField(required=False, choices=[("", "Any language"), ("en", "English"), ("ru", "Russian"), ("uz", "Uzbek")])
+    query = forms.CharField(required=False, label=_("Search"), widget=forms.TextInput(attrs={"placeholder": _("Search jobs, skills, companies..."), "aria-label": _("Search jobs, skills, companies...")}))
+    category = forms.ChoiceField(required=False, choices=[("", _("Any role"))] + [(value, _(label)) for value, label in Vacancy.CATEGORY_CHOICES])
+    experience_level = forms.ChoiceField(required=False, choices=[("", _("Any level"))] + [(value, _(label)) for value, label in Vacancy.EXPERIENCE_CHOICES])
+    employment_type = forms.ChoiceField(required=False, choices=[("", _("Any employment"))] + [(value, _(label)) for value, label in Vacancy.EMPLOYMENT_CHOICES])
+    work_format = forms.ChoiceField(required=False, choices=[("", _("Any format"))] + [(value, _(label)) for value, label in Vacancy.FORMAT_CHOICES])
+    location = forms.ChoiceField(required=False, choices=[("", _("Any location"))])
+    language = forms.ChoiceField(required=False, choices=[("", _("Any language")), ("en", _("English")), ("ru", _("Russian")), ("uz", _("Uzbek"))])
+    source = forms.ChoiceField(required=False, choices=[("", _("Any source"))])
     salary_min = forms.IntegerField(required=False, min_value=0)
-    sort = forms.ChoiceField(required=False, choices=[("newest", "Newest"), ("relevance", "Relevance"), ("salary", "Salary")], initial="newest")
+    sort = forms.ChoiceField(required=False, choices=[("newest", "Newest"), ("oldest", "Oldest"), ("relevance", "Relevance"), ("salary", "Salary")], initial="newest")
+
+    def __init__(self, *args, locations=None, sources=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["location"].choices += [(value, value) for value in locations or []]
+        self.fields["source"].choices += [(value, value) for value in sources or []]
 
 
 class SettingsForm(forms.ModelForm):
