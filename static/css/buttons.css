@@ -153,6 +153,9 @@ button.btn:focus-visible,
 .auth-form { display:grid; gap:1rem; }
 .auth-field input { min-height:48px; border-radius:7px; border:1px solid #c7c6dc; padding:.7rem .85rem; }
 .auth-field input:focus { border-color:var(--primary-strong); outline:0; box-shadow:0 0 0 3px rgba(47,47,162,.14); }
+.password-field { position:relative; display:grid; gap:.4rem; }
+.password-field input { width:100%; padding-right:76px; }
+.password-toggle { position:absolute; right:10px; bottom:10px; border:0; background:transparent; color:var(--primary); font:600 .8rem system-ui,sans-serif; cursor:pointer; }
 .auth-button { width:100%; min-height:48px; }
 .auth-footer { color:var(--muted); margin:1.4rem 0 0; text-align:center; font: .9rem system-ui,sans-serif; }
 .auth-footer a, .text-link { color:var(--primary); font-weight:700; }

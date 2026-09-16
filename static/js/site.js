@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+    const field = toggle.closest('.password-field')?.querySelector('input');
+    if (!field) return;
+    toggle.addEventListener('click', () => {
+      const show = field.type === 'password';
+      field.type = show ? 'text' : 'password';
+      toggle.textContent = show ? 'Hide' : 'Show';
+      toggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  });
   document.querySelectorAll('form[data-loading]').forEach((form) => form.addEventListener('submit', () => {
     const button = form.querySelector('button[type="submit"]');
     if (button) { button.disabled = true; button.dataset.original = button.textContent; button.textContent = 'Loading...'; }

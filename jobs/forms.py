@@ -1,9 +1,14 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from .models import Profile, Vacancy
+
+
+class StyledAuthenticationForm(AuthenticationForm):
+    username = forms.CharField(widget=forms.TextInput(attrs={"class": "form-control auth-input", "placeholder": "your_username"}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={"class": "form-control auth-input", "placeholder": "********"}))
 
 
 class RegisterForm(UserCreationForm):
@@ -41,6 +46,14 @@ class ProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            widget = field.widget
+            if isinstance(widget, forms.Textarea):
+                widget.attrs.update({"class": "form-control"})
+            elif isinstance(widget, forms.Select):
+                widget.attrs.update({"class": "form-select"})
+            elif isinstance(widget, forms.TextInput):
+                widget.attrs.update({"class": "form-control"})
         self.fields["skills_text"].initial = ", ".join(self.instance.skills or [])
         self.fields["languages_text"].initial = ", ".join(self.instance.languages or [])
 
